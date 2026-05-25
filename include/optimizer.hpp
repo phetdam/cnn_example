@@ -1,48 +1,70 @@
 #ifndef OPTIMIZER_HPP
 #define OPTIMIZER_HPP
 
-#include "yml_oarchive.hpp"
-#include "yml_iarchive.hpp"
+#include <boost/serialization/nvp.hpp>
+#include <boost/serialization/string.hpp>
 
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/utility.hpp> // serialize pair
-#include <boost/serialization/array.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/optional.hpp> // serialize boost::optional
-
-#define NVP(a) BOOST_SERIALIZATION_NVP(a)
-
+#include <ostream>
 #include <string>
+
+#include "exccnn/dllexport.h"
 #include "typedef.hpp"
 #include "functions.hpp"
 
-namespace cnn{
+namespace cnn {
 
-	/* Provide function pointers to activatation function and derivative of activation function */
-	class optimizer{
-		public:
-      typedef cnn::real_type (*FunctionPointer)(cnn::real_type);
+/* Provide function pointers to activation function and derivative of activation function */
+class EXCCNN_PUBLIC optimizer {
+public:
+	typedef real_type (*FunctionPointer)(real_type);
 
-      std::string name;
-	    FunctionPointer activate;
-	    FunctionPointer derivative_funcptr;
+	std::string name;
+	// FIXME: activate and derivative_funcptr are lost on serialization
+	FunctionPointer activate;
+	FunctionPointer derivative_funcptr;
 
-		template<class Ar>
-		void serialize(Ar& ar, unsigned){
-			ar & NVP(name);
-		}
+	// TODO: split into save/load so we can map activate + derivative_funcptr
+	// to the known combinations of activation functions + their derivatives
+	template <typename Ar>
+	void serialize(Ar& ar, unsigned /*version*/) {
+		ar & BOOST_SERIALIZATION_NVP(name);
+	}
 
-		// Default constructor using linear function
-		optimizer(): name ("linear"), activate(linear), derivative_funcptr(derivative_linear) {}
-		// Initialize with a new optimizer
-		optimizer(std::string name, cnn::real_type (*funcptr) (cnn::real_type), cnn::real_type (*derivative_funcptr) (cnn::real_type) ): name (name), activate(funcptr), derivative_funcptr(derivative_funcptr){
-		}
-		optimizer(const optimizer & o): name (o.name), activate(o.activate), derivative_funcptr(o.derivative_funcptr) {}
-		friend std::ostream& operator<< (std::ostream& stream, const optimizer & o) {
-			std::cout << "optimizer = " << o.name << std::endl;
-			return stream;
-		}
-	};
-}
+	/**
+	 * Default ctor.
+	 *
+	 * This constructs with the `"linear"`activation name and function pointers.
+	 */
+	optimizer();
 
-#endif
+	/**
+	 * Ctor.
+	 *
+	 * Initializes with user-specified choice of name and function pointers.
+	 *
+	 * @todo This does correctly constrain the inputs to the known combinations.
+	 *
+	 * @param name Activation name
+	 * @param funcptr Activation function pointer
+	 * @param derivative_funcptr Activation derivative function pointer
+	 */
+	optimizer(
+		std::string name,
+		FunctionPointer funcptr,
+		FunctionPointer derivative_funcptr);
+};
+
+/**
+ * Write the optimizer to the output stream.
+ *
+ * This streams `"optimizer = <name>"`, where `<name>` is the object name.
+ *
+ * @param out Output stream
+ * @param op Optimizer object
+ */
+EXCCNN_PUBLIC
+std::ostream& operator<<(std::ostream& out, const optimizer& op);
+
+}  // namespace cnn
+
+#endif  // OPTIMIZER_HPP

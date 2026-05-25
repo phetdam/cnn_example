@@ -1,73 +1,79 @@
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include "yml_oarchive.hpp"
-#include "yml_iarchive.hpp"
-
+#include <boost/serialization/nvp.hpp>
 #include <boost/serialization/vector.hpp>
-#include <boost/serialization/utility.hpp> // serialize pair
-#include <boost/serialization/array.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/optional.hpp> // serialize boost::optional
 
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/io.hpp>
+#include <iosfwd>
 #include <vector>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <cassert>
-
+#include "exccnn/dllexport.h"
 #include "typedef.hpp"
 #include "connector.hpp"
 
-#define NVP(a) BOOST_SERIALIZATION_NVP(a)
+namespace cnn {
 
-using namespace boost::numeric::ublas;
-
-namespace cnn{
-
-class Connection{
-
+class EXCCNN_PUBLIC Connection {
 public:
-  std::vector<cnn::Connector> weights;
-
-  friend std::ostream & operator << (std::ostream & stream, const Connection & con_);
-	template<class Ar>
-	void serialize(Ar& ar, unsigned){
-		ar & NVP(weights);
+  /**
+   * Boost serialization function for name-value serialization.
+   *
+   * @tparam Ar Boost.Serialization input/output archive type
+   *
+   * @param ar Boost.Serialiation input/output archive
+   */
+	template <typename Ar>
+	void serialize(Ar& ar, unsigned /*version*/)
+  {
+		ar & BOOST_SERIALIZATION_NVP(weights);
 	}
-  bool operator == (Connection const & con_) const { return con_.weights.size() == weights.size() ; }
 
-  Connection(){
+  /**
+   * Default ctor.
+   */
+  Connection() = default;
 
-  }
+  /**
+   * Ctor.
+   *
+   * @param _weights `Connector` weights to initialize with
+   */
+  Connection(std::vector<Connector> _weights);
 
-  Connection(const std::vector<cnn::Connector> & _weights){
-     weights = _weights;
-  }
+  // forward update (no-op)
+  void update_forward(real_type /*input*/);
 
-  // ostream operator
-  friend std::ostream& operator<< (std::ostream& stream, const Connection & con) {
-
-    for (int i = 0; i < con.weights.size(); i ++)
-      stream << con.weights[i];
-    return stream;
-  }
-  void update_forward(const real_type & /*input*/) {
-
-  }
+  // backward update (no-op)
   void update_backward(
-    const real_type & /*previous*/,
-    const real_type & /*expected*/,
-    const real_type & /*next*/) {
+    real_type /*previous*/,
+    real_type /*expected*/,
+    real_type /*next*/);
 
-  }
+  /**
+   * Compare two `Connection` objects for equality.
+   *
+   * Currently tbis implementation only checks that the weights are the same
+   * size and the values of each `Connector` in the weights vector.
+   *
+   * @param con `Connection` to compare against
+   */
+  bool operator==(const Connection& con) const noexcept;
 
-private:
+  // connection weights
+  std::vector<Connector> weights;
 };
 
-};
+/**
+ * Write the `Connection` to the output stream.
+ *
+ * This simply streams all the `Connector` items in the weights.
+ *
+ * @param out Output stream
+ * @param con Network connection
+ */
+EXCCNN_PUBLIC
+std::ostream& operator<<(std::ostream& out, const Connection& con);
 
-#endif
+}  // namespace cnn
 
+#endif  // CONNECTION_HPP

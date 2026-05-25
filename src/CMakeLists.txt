@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 
 # cnnlib: CNN support library
-add_library(cnnlib SHARED functions.cpp mnist.cpp utils.cpp)
+add_library(
+    cnnlib SHARED
+    connection.cpp functions.cpp mnist.cpp optimizer.cpp utils.cpp
+)
 target_include_directories(cnnlib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(cnnlib PRIVATE ZLIB::ZLIB)
 # note: header interface is currently a mess and Boost dependency is transitive
